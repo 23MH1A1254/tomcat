@@ -1,51 +1,46 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "prasad67/maven-web-app"
-    }
-
     stages {
 
-        stage('Checkout Code') {
+        stage('Clone') {
             steps {
-                checkout scm
+                git 'https://github.com/23MH1A1254/tomcat.git'
             }
         }
 
-        stage('Build WAR') {
+        stage('Maven Build') {
             steps {
                 sh 'mvn clean package'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Stop & Remove Old Container') {
             steps {
                 sh '''
-                  docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
+                docker stop adi-cont || true
+                docker rm adi-cont || true
                 '''
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('Remove Old Image') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
-                }
+                sh '''
+                docker rmi img-kokila || true
+                '''
             }
         }
 
-        stage('Push Image to Docker Hub') {
+        stage('Docker Image Build') {
             steps {
-                sh '''
-                  docker push $IMAGE_NAME:${BUILD_NUMBER}
-                '''
+                sh 'docker build -t img-kokila .'
+            }
+        }
+
+        stage('Docker Deploy') {
+            steps {
+                sh 'docker run -d -p 8085:8080 --name adi-cont img-kokila'
             }
         }
     }
