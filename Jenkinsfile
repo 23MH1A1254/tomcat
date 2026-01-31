@@ -15,18 +15,20 @@ pipeline {
             }
         }
 
-        stage('Stop & Remove Container Using Port 8085') {
+        stage('Stop & Remove Old Container') {
             steps {
                 sh '''
-                docker ps -q --filter "publish=8085" | xargs -r docker stop
-                docker ps -aq --filter "publish=8085" | xargs -r docker rm
+                docker stop adi-cont || true
+                docker rm adi-cont || true
                 '''
             }
         }
 
         stage('Remove Old Image') {
             steps {
-                sh 'docker rmi img-kokila || true'
+                sh '''
+                docker rmi img-kokila || true
+                '''
             }
         }
 
